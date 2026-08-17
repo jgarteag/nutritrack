@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NutriTrack — Contador de Calorías con IA</title>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <style>
+    /* ============================================
+       CSS Reset & Base
+    ============================================ */
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      /* Dark Mode Design System */
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --bg-tertiary: #0f3460;
+      --accent-success: #00d68f;
+      --accent-warning: #ff9f43;
+      --accent-danger: #ff6b6b;
+      --text-primary: #e8e8e8;
+      --text-secondary: #a0a0b0;
+      --text-accent: #ffffff;
+      --border-color: #2a2a4a;
+
+      /* Spacing */
+      --spacing-xs: 0.25rem;
+      --spacing-sm: 0.5rem;
+      --spacing-md: 1rem;
+      --spacing-lg: 1.5rem;
+      --spacing-xl: 2rem;
+
+      /* Border radius */
+      --radius-sm: 0.5rem;
+      --radius-md: 0.75rem;
+      --radius-lg: 1rem;
+
+      /* Transitions */
+      --transition-fast: 0.2s ease;
+      --transition-normal: 0.3s ease;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ============================================
+       CSS Animations
+    ============================================ */
+    @keyframes fadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-4px); }
+      20%, 40%, 60%, 80% { transform: translateX(4px); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.6; transform: scale(0.95); }
+    }
+
+    @keyframes slideLeft {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes slideRight {
+      from { transform: translateX(-100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .animate-fade-in-up {
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .animate-shake {
+      animation: shake 0.5s ease;
+    }
+
+    .animate-pulse {
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+
+    .animate-slide-left {
+      animation: slideLeft 0.3s ease forwards;
+    }
+
+    .animate-slide-right {
+      animation: slideRight 0.3s ease forwards;
+    }
+
+    /* ============================================
+       Layout & Screens
+    ============================================ */
+    .app-container {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .screen {
+      display: none;
+      padding: var(--spacing-lg);
+      min-height: 100vh;
+    }
+
+    .screen.active {
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ============================================
+       Common Components
+    ============================================ */
+    .card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: var(--spacing-lg);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: var(--spacing-sm) var(--spacing-lg);
+      border: none;
+      border-radius: var(--radius-sm);
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color var(--transition-fast), transform var(--transition-fast);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn-primary {
+      background-color: var(--accent-success);
+      color: var(--bg-primary);
+    }
+
+    .btn-primary:hover {
+      background-color: #00c07f;
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-tertiary);
+      color: var(--text-primary);
+    }
+
+    .btn-secondary:hover {
+      background-color: #0d2d52;
+    }
+
+    .btn-danger {
+      background-color: var(--accent-danger);
+      color: var(--text-accent);
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    .input-group {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-xs);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .input-group label {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+
+    .input-group input,
+    .input-group select {
+      padding: var(--spacing-sm) var(--spacing-md);
+      background-color: var(--bg-tertiary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 1rem;
+      transition: border-color var(--transition-fast);
+    }
+
+    .input-group input:focus,
+    .input-group select:focus {
+      outline: none;
+      border-color: var(--accent-success);
+    }
+
+    .error-message {
+      color: var(--accent-danger);
+      font-size: 0.875rem;
+      margin-top: var(--spacing-xs);
+    }
+
+    .screen-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--text-accent);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .loading-spinner {
+      display: none;
+      width: 40px;
+      height: 40px;
+      border: 3px solid var(--border-color);
+      border-top-color: var(--accent-success);
+      border-radius: 50%;
+      animation: pulse 1.2s infinite ease-in-out;
+      margin: var(--spacing-lg) auto;
+    }
+
+    .loading-spinner.visible {
+      display: block;
+    }
+
+    /* ============================================
+       Navigation Bar
+    ============================================ */
+    .nav-bar {
+      position: fixed;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      max-width: 480px;
+      background-color: var(--bg-secondary);
+      border-top: 1px solid var(--border-color);
+      display: none;
+      justify-content: space-around;
+      padding: var(--spacing-sm) 0;
+      z-index: 100;
+    }
+
+    .nav-bar.visible {
+      display: flex;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 0.7rem;
+      cursor: pointer;
+      padding: var(--spacing-xs);
+      transition: color var(--transition-fast);
+    }
+
+    .nav-item.active,
+    .nav-item:hover {
+      color: var(--accent-success);
+    }
+
+    .nav-item svg {
+      width: 24px;
+      height: 24px;
+    }
+
+    /* ============================================
+       Screen: Login
+    ============================================ */
+    #login-screen {
+      justify-content: center;
+      align-items: center;
+    }
+
+    .login-logo {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-accent);
+      margin-bottom: var(--spacing-xs);
+      text-align: center;
+    }
+
+    .login-subtitle {
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-xl);
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .login-form {
+      width: 100%;
+      max-width: 320px;
+    }
+
+    #login-error {
+      display: none;
+      text-align: center;
+      margin-bottom: var(--spacing-md);
+    }
+
+    /* ============================================
+       Screen: Onboarding
+    ============================================ */
+    #onboarding-screen {
+      justify-content: center;
+    }
+
+    .onboarding-step {
+      display: none;
+    }
+
+    .onboarding-step.active {
+      display: block;
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .step-indicator {
+      display: flex;
+      gap: var(--spacing-sm);
+      justify-content: center;
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .step-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background-color: var(--border-color);
+      transition: background-color var(--transition-fast);
+    }
+
+    .step-dot.active {
+      background-color: var(--accent-success);
+    }
+
+    .tdee-result {
+      text-align: center;
+      padding: var(--spacing-xl);
+    }
+
+    .tdee-value {
+      font-size: 3rem;
+      font-weight: 700;
+      color: var(--accent-success);
+    }
+
+    .tdee-label {
+      color: var(--text-secondary);
+      margin-top: var(--spacing-xs);
+    }
+
+    .goal-suggestion {
+      text-align: center;
+      margin-top: var(--spacing-lg);
+    }
+
+    .goal-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: var(--text-accent);
+    }
+
+    /* ============================================
+       Screen: Dashboard
+    ============================================ */
+    #dashboard-screen {
+      padding-bottom: 80px;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .progress-ring-container {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 0 auto var(--spacing-lg);
+    }
+
+    .progress-ring-canvas {
+      width: 100%;
+      height: 100%;
+    }
+
+    .progress-ring-text {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    .calories-consumed {
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--text-accent);
+      line-height: 1;
+    }
+
+    .calories-goal {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      margin-top: var(--spacing-xs);
+    }
+
+    .camera-btn {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background-color: var(--accent-success);
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(0, 214, 143, 0.3);
+      z-index: 101;
+      transition: transform var(--transition-fast);
+    }
+
+    .camera-btn:hover {
+      transform: translateX(-50%) scale(1.05);
+    }
+
+    .camera-btn svg {
+      width: 28px;
+      height: 28px;
+      fill: var(--bg-primary);
+    }
+
+    .entries-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-sm);
+    }
+
+    .entry-card {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: var(--spacing-md);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    .entry-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .entry-name {
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .entry-meta {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+    }
+
+    .entry-calories {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text-accent);
+    }
+
+    .entries-section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: var(--spacing-sm);
+    }
+
+    /* ============================================
+       Screen: Weekly
+    ============================================ */
+    #weekly-screen {
+      padding-bottom: 80px;
+    }
+
+    .chart-container {
+      position: relative;
+      width: 100%;
+      height: 300px;
+      margin-top: var(--spacing-lg);
+    }
+
+    .chart-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    /* ============================================
+       Screen: Weight Tracker
+    ============================================ */
+    #weight-screen {
+      padding-bottom: 80px;
+    }
+
+    .weight-form {
+      margin-bottom: var(--spacing-lg);
+    }
+
+    .weight-chart-container {
+      position: relative;
+      width: 100%;
+      height: 250px;
+      margin-top: var(--spacing-lg);
+    }
+
+    .weight-chart-container canvas {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .weight-update-result {
+      display: none;
+      text-align: center;
+      padding: var(--spacing-lg);
+    }
+
+    .weight-update-result.visible {
+      display: block;
+      animation: fadeInUp 0.4s ease forwards;
+    }
+
+    /* ============================================
+       Screen: Settings
+    ============================================ */
+    #settings-screen {
+      padding-bottom: 80px;
+    }
+
+    .settings-section {
+      margin-bottom: var(--spacing-xl);
+    }
+
+    .settings-section-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--text-accent);
+      margin-bottom: var(--spacing-md);
+    }
+
+    .logout-section {
+      margin-top: auto;
+      padding-top: var(--spacing-xl);
+    }
+
+    /* ============================================
+       Responsive Design
+    ============================================ */
+    @media (max-width: 480px) {
+      .app-container {
+        max-width: 100%;
+      }
+
+      .screen {
+        padding: var(--spacing-md);
+      }
+
+      .progress-ring-container {
+        width: 180px;
+        height: 180px;
+      }
+
+      .calories-consumed {
+        font-size: 2rem;
+      }
+
+      .chart-container,
+      .weight-chart-container {
+        height: 220px;
+      }
+    }
+
+    @media (min-width: 768px) {
+      .app-container {
+        border-left: 1px solid var(--border-color);
+        border-right: 1px solid var(--border-color);
+      }
+    }
+
+    /* ============================================
+       Utility: Hidden file input
+    ============================================ */
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container" role="application" aria-label="NutriTrack Contador de Calorías con IA">
+
+    <!-- ============================================
+         Screen: Login
+    ============================================ -->
+    <section id="login-screen" class="screen active" role="region" aria-label="Iniciar sesión">
+      <div class="login-logo" aria-hidden="true">🥗 NutriTrack</div>
+      <p class="login-subtitle">Contador de calorías con IA</p>
+
+      <form class="login-form" id="login-form" aria-label="Formulario de inicio de sesión">
+        <div id="login-error" class="error-message" role="alert" aria-live="polite"></div>
+
+        <div class="input-group">
+          <label for="login-username">Usuario</label>
+          <input
+            type="text"
+            id="login-username"
+            name="username"
+            autocomplete="username"
+            required
+            aria-required="true"
+            placeholder="Ingresa tu usuario"
+          >
+        </div>
+
+        <div class="input-group">
+          <label for="login-password">Contraseña</label>
+          <input
+            type="password"
+            id="login-password"
+            name="password"
+            autocomplete="current-password"
+            required
+            aria-required="true"
+            placeholder="Ingresa tu contraseña"
+          >
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="login-btn">
+          Iniciar sesión
+        </button>
+      </form>
+    </section>
+
+    <!-- ============================================
+         Screen: Onboarding
+    ============================================ -->
+    <section id="onboarding-screen" class="screen" role="region" aria-label="Configuración inicial">
+      <h1 class="screen-title">Configuremos tu perfil</h1>
+
+      <div class="step-indicator" aria-label="Progreso de configuración">
+        <span class="step-dot active" aria-label="Paso 1"></span>
+        <span class="step-dot" aria-label="Paso 2"></span>
+        <span class="step-dot" aria-label="Paso 3"></span>
+        <span class="step-dot" aria-label="Paso 4"></span>
+      </div>
+
+      <!-- Step 1: Weight & Height -->
+      <div class="onboarding-step active" id="onboarding-step-1" role="group" aria-label="Paso 1: Medidas corporales">
+        <div class="card">
+          <div class="input-group">
+            <label for="onboarding-weight">Peso (kg)</label>
+            <input
+              type="number"
+              id="onboarding-weight"
+              min="30"
+              max="300"
+              step="0.1"
+              required
+              aria-required="true"
+              placeholder="ej. 75"
+            >
+          </div>
+
+          <div class="input-group">
+            <label for="onboarding-height">Altura (cm)</label>
+            <input
+              type="number"
+              id="onboarding-height"
+              min="100"
+              max="250"
+              step="0.1"
+              required
+              aria-required="true"
+              placeholder="ej. 175"
+            >
+          </div>
+
+          <button type="button" class="btn btn-primary btn-full" id="onboarding-next-1" aria-label="Continuar al paso 2">
+            Continuar
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 2: Age & Sex -->
+      <div class="onboarding-step" id="onboarding-step-2" role="group" aria-label="Paso 2: Datos personales">
+        <div class="card">
+          <div class="input-group">
+            <label for="onboarding-age">Edad</label>
+            <input
+              type="number"
+              id="onboarding-age"
+              min="13"
+              max="120"
+              required
+              aria-required="true"
+              placeholder="ej. 30"
+            >
+          </div>
+
+          <div class="input-group">
+            <label for="onboarding-sex">Sexo</label>
+            <select id="onboarding-sex" required aria-required="true">
+              <option value="" disabled selected>Seleccionar sexo</option>
+              <option value="male">Masculino</option>
+              <option value="female">Femenino</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-full" id="onboarding-next-2" aria-label="Continuar al paso 3">
+            Continuar
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Activity Level -->
+      <div class="onboarding-step" id="onboarding-step-3" role="group" aria-label="Paso 3: Nivel de actividad">
+        <div class="card">
+          <div class="input-group">
+            <label for="onboarding-activity">Nivel de actividad</label>
+            <select id="onboarding-activity" required aria-required="true">
+              <option value="" disabled selected>Seleccionar nivel de actividad</option>
+              <option value="sedentary">Sedentario (poco o ningún ejercicio)</option>
+              <option value="light">Ligero (ejercicio 1–3 días/semana)</option>
+              <option value="moderate">Moderado (ejercicio 3–5 días/semana)</option>
+              <option value="active">Activo (ejercicio intenso 6–7 días/semana)</option>
+              <option value="very_active">Muy activo (trabajo físico + ejercicio)</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-full" id="onboarding-next-3" aria-label="Calcular tu TDEE">
+            Calcular TDEE
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 4: TDEE Result & Goal -->
+      <div class="onboarding-step" id="onboarding-step-4" role="group" aria-label="Paso 4: Tu meta de calorías">
+        <div class="card">
+          <div class="tdee-result">
+            <p class="tdee-label">Tu gasto energético diario</p>
+            <p class="tdee-value" id="tdee-display" aria-live="polite">—</p>
+            <p class="tdee-label">kcal / día</p>
+          </div>
+
+          <div class="goal-suggestion">
+            <p class="tdee-label">Meta diaria sugerida</p>
+            <p class="goal-value" id="goal-display" aria-live="polite">—</p>
+            <p class="tdee-label">kcal / día</p>
+          </div>
+
+          <div class="input-group" style="margin-top: var(--spacing-lg);">
+            <label for="onboarding-goal-adjust">Ajustar meta (opcional)</label>
+            <input
+              type="number"
+              id="onboarding-goal-adjust"
+              min="1200"
+              max="10000"
+              step="50"
+              placeholder="Dejar vacío para aceptar sugerencia"
+              aria-label="Meta de calorías personalizada"
+            >
+          </div>
+
+          <button type="button" class="btn btn-primary btn-full" id="onboarding-confirm" aria-label="Confirmar meta y comenzar">
+            Comenzar
+          </button>
+        </div>
+      </div>
+
+      <div id="onboarding-error" class="error-message" role="alert" aria-live="polite"></div>
+    </section>
+
+    <!-- ============================================
+         Screen: Dashboard
+    ============================================ -->
+    <section id="dashboard-screen" class="screen" role="region" aria-label="Panel diario">
+      <div class="dashboard-header">
+        <h1 class="screen-title">Hoy</h1>
+        <span id="dashboard-date" class="entries-section-title" aria-label="Fecha actual"></span>
+      </div>
+
+      <!-- Progress Ring -->
+      <div class="progress-ring-container" role="img" aria-label="Anillo de progreso de calorías">
+        <canvas id="progress-ring-chart" class="progress-ring-canvas"></canvas>
+        <div class="progress-ring-text">
+          <span class="calories-consumed" id="calories-consumed" aria-live="polite">0</span>
+          <span class="calories-goal" id="calories-goal-label">/ 0 kcal</span>
+        </div>
+      </div>
+
+      <!-- Loading Spinner -->
+      <div class="loading-spinner" id="dashboard-spinner" role="status" aria-label="Analizando imagen de comida">
+        <span class="visually-hidden">Analizando...</span>
+      </div>
+
+      <!-- Entries List -->
+      <p class="entries-section-title">Entradas de hoy</p>
+      <div class="entries-list" id="entries-list" role="list" aria-label="Entradas de comida de hoy">
+        <!-- Entry cards rendered dynamically -->
+      </div>
+
+      <!-- Camera Button -->
+      <button class="camera-btn" id="camera-btn" aria-label="Agregar comida con la cámara">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M12 15.2a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4z"/>
+          <path d="M9 2L7.17 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2h-3.17L15 2H9z"/>
+        </svg>
+      </button>
+
+      <!-- Hidden file input for image capture -->
+      <input
+        type="file"
+        id="food-image-input"
+        accept="image/*"
+        class="visually-hidden"
+        aria-label="Seleccionar foto de comida"
+      >
+    </section>
+
+    <!-- ============================================
+         Screen: Weekly Summary
+    ============================================ -->
+    <section id="weekly-screen" class="screen" role="region" aria-label="Resumen semanal de calorías">
+      <h1 class="screen-title">Resumen semanal</h1>
+
+      <div class="card">
+        <div class="chart-container">
+          <canvas id="weekly-chart" aria-label="Gráfico de barras con el consumo diario de calorías de la semana"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         Screen: Weight Tracker
+    ============================================ -->
+    <section id="weight-screen" class="screen" role="region" aria-label="Seguimiento de peso">
+      <h1 class="screen-title">Seguimiento de peso</h1>
+
+      <!-- Weight Entry Form -->
+      <div class="card weight-form">
+        <form id="weight-form" aria-label="Registrar nuevo peso">
+          <div class="input-group">
+            <label for="weight-input">Nuevo peso (kg)</label>
+            <input
+              type="number"
+              id="weight-input"
+              min="30"
+              max="300"
+              step="0.1"
+              required
+              aria-required="true"
+              placeholder="ej. 74.5"
+            >
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-full" id="weight-submit-btn">
+            Registrar peso
+          </button>
+        </form>
+
+        <div id="weight-error" class="error-message" role="alert" aria-live="polite"></div>
+      </div>
+
+      <!-- Weight Update Result -->
+      <div class="weight-update-result card" id="weight-update-result" role="status" aria-live="polite">
+        <p class="tdee-label">TDEE actualizado</p>
+        <p class="tdee-value" id="weight-new-tdee">—</p>
+        <p class="tdee-label" style="margin-top: var(--spacing-md);">Nueva meta sugerida</p>
+        <p class="goal-value" id="weight-new-goal">—</p>
+
+        <div style="display: flex; gap: var(--spacing-sm); margin-top: var(--spacing-lg);">
+          <button type="button" class="btn btn-primary" id="weight-accept-goal" style="flex:1;" aria-label="Aceptar nueva meta">
+            Aceptar
+          </button>
+          <button type="button" class="btn btn-secondary" id="weight-keep-goal" style="flex:1;" aria-label="Mantener meta actual">
+            Mantener actual
+          </button>
+        </div>
+      </div>
+
+      <!-- Weight History Chart -->
+      <div class="card" style="margin-top: var(--spacing-lg);">
+        <p class="entries-section-title">Progreso</p>
+        <div class="weight-chart-container">
+          <canvas id="weight-chart" aria-label="Gráfico de línea con el historial de peso"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================
+         Screen: Settings
+    ============================================ -->
+    <section id="settings-screen" class="screen" role="region" aria-label="Configuración">
+      <h1 class="screen-title">Configuración</h1>
+
+      <!-- Update Goal -->
+      <div class="settings-section">
+        <h2 class="settings-section-title">Meta diaria de calorías</h2>
+        <div class="card">
+          <form id="settings-goal-form" aria-label="Actualizar meta de calorías">
+            <div class="input-group">
+              <label for="settings-goal-input">Meta (kcal)</label>
+              <input
+                type="number"
+                id="settings-goal-input"
+                min="500"
+                max="10000"
+                step="50"
+                required
+                aria-required="true"
+                placeholder="ej. 1800"
+              >
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Actualizar meta</button>
+          </form>
+          <div id="settings-goal-error" class="error-message" role="alert" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <!-- Update Weight -->
+      <div class="settings-section">
+        <h2 class="settings-section-title">Actualizar peso</h2>
+        <div class="card">
+          <form id="settings-weight-form" aria-label="Actualizar peso desde configuración">
+            <div class="input-group">
+              <label for="settings-weight-input">Peso (kg)</label>
+              <input
+                type="number"
+                id="settings-weight-input"
+                min="30"
+                max="300"
+                step="0.1"
+                required
+                aria-required="true"
+                placeholder="ej. 74.5"
+              >
+            </div>
+            <button type="submit" class="btn btn-primary btn-full">Actualizar peso</button>
+          </form>
+          <div id="settings-weight-error" class="error-message" role="alert" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <!-- Logout -->
+      <div class="logout-section">
+        <button type="button" class="btn btn-danger btn-full" id="logout-btn" aria-label="Cerrar sesión de NutriTrack">
+          Cerrar sesión
+        </button>
+      </div>
+    </section>
+
+    <!-- ============================================
+         Navigation Bar
+    ============================================ -->
+    <nav class="nav-bar" id="nav-bar" role="navigation" aria-label="Navegación principal">
+      <button class="nav-item active" data-screen="dashboard-screen" aria-label="Panel" aria-current="page">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+        </svg>
+        <span>Hoy</span>
+      </button>
+
+      <button class="nav-item" data-screen="weekly-screen" aria-label="Resumen semanal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+        </svg>
+        <span>Semanal</span>
+      </button>
+
+      <button class="nav-item" data-screen="weight-screen" aria-label="Seguimiento de peso">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+        <span>Peso</span>
+      </button>
+
+      <button class="nav-item" data-screen="settings-screen" aria-label="Configuración">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68 1.65 1.65 0 0 0 10 3.17V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+        <span>Configuración</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- App config (populated at deploy time via config.js) -->
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <script src="onboarding.js"></script>
+  <script src="dashboard.js"></script>
+  <script src="charts.js"></script>
+</body>
+</html>
