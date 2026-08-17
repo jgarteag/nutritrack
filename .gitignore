@@ -216,3 +216,29 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# ============================================
+# NutriTrack project-specific ignores
+# ============================================
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl
+terraform/tfplan
+
+# Lambda build artifacts
+*.zip
+.lambda-build/
+
+# Node / React frontend build
+node_modules/
+frontend-react/dist/
+frontend-react/.env
+
+# IDE
+.vscode/
+
+# OS
+.DS_Store
