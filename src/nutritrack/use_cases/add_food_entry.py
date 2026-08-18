@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from uuid import uuid4
 
 from nutritrack.domain.models import DailyGoal, DailySummary, FoodEntry
@@ -15,6 +15,7 @@ async def add_food_entry(
     image_analyzer: ImageAnalyzer,
     entry_repository: EntryRepository,
     daily_goal: DailyGoal,
+    local_date: str = "",
 ) -> AddEntryResult:
     """
     Process a food image and create a calorie entry.
@@ -34,7 +35,7 @@ async def add_food_entry(
     # Step 3: Generate unique entry ID and timestamp
     entry_id = str(uuid4())
     now = datetime.now(timezone.utc)
-    today = now.strftime("%Y-%m-%d")
+    today = local_date if local_date else now.strftime("%Y-%m-%d")
     timestamp = now.isoformat()
 
     # Step 4: Create domain entity

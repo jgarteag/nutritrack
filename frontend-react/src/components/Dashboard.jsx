@@ -11,7 +11,7 @@ export default function Dashboard() {
   const fileInputRef = useRef(null)
   const confettiFired = useRef(false)
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDate()
 
   useEffect(() => {
     loadSummary()
@@ -56,7 +56,7 @@ export default function Dashboard() {
 
     try {
       const base64 = await fileToBase64(file)
-      const result = await addFoodEntry(base64)
+      const result = await addFoodEntry(base64, today)
       if (result.daily_summary) {
         setSummary(result.daily_summary)
       } else {
@@ -208,6 +208,14 @@ export default function Dashboard() {
       />
     </div>
   )
+}
+
+function getLocalDate() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function fileToBase64(file) {

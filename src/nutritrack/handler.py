@@ -115,11 +115,15 @@ async def _handle_post_entries(body: dict) -> dict:
     image_analyzer = _get_image_analyzer()
     entry_repository = _get_entry_repository()
 
+    # Use client's local date if provided, otherwise UTC
+    local_date = body.get("date", "")
+
     result = await add_food_entry(
         image_data=image_data,
         image_analyzer=image_analyzer,
         entry_repository=entry_repository,
         daily_goal=daily_goal,
+        local_date=local_date,
     )
 
     return _make_response(201, _serialize(result))

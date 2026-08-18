@@ -167,10 +167,10 @@ async function apiRequest(path, options = {}) {
 }
 
 // Entries
-export function addFoodEntry(imageData) {
+export function addFoodEntry(imageData, date) {
   return apiRequest('/entries', {
     method: 'POST',
-    body: JSON.stringify({ image_data: imageData }),
+    body: JSON.stringify({ image_data: imageData, date }),
   });
 }
 
